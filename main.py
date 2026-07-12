@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from database import get_connection, init_db
@@ -37,4 +37,30 @@ def create_note(note: NoteCreate) -> dict:
         ).fetchone()
     finally:
         connection.close()
+    return dict(row)
+
+
+@app.get("/notes")
+def list_notes() -> list[dict]:
+    connection = get_connection()
+    try:
+        rows = connection.execute(
+            "SELECT * FROM notes ORDER BY created_at DESC"
+        ).fetchall()
+    finally:
+        connection.close()
+    return [dict(row) for row in rows]
+
+
+@app.get("/notes/{note_id}")
+def get_note(note_id: int) -> dict:
+    connection = get_connection()
+    try:
+        row = connection.execute(
+            "SELECT * FROM notes WHERE id = ?", (note_id,)
+        ).fetchone()
+    finally:
+        connection.close()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Note not found")
     return dict(row)
