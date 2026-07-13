@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 
 from database import get_connection, init_db
@@ -46,6 +46,29 @@ def list_notes() -> list[dict]:
     try:
         rows = connection.execute(
             "SELECT * FROM notes ORDER BY created_at DESC"
+        ).fetchall()
+    finally:
+        connection.close()
+    return [dict(row) for row in rows]
+
+
+@app.get("/notes/search")
+def search_notes(q: Optional[str] = Query(None)) -> list[dict]:
+    if q is None or not q.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Query parameter 'q' is required and cannot be empty",
+        )
+    pattern = f"%{q}%"
+    connection = get_connection()
+    try:
+        rows = connection.execute(
+            """
+            SELECT * FROM notes
+            WHERE LOWER(title) LIKE LOWER(?) OR LOWER(content) LIKE LOWER(?)
+            ORDER BY created_at DESC
+            """,
+            (pattern, pattern),
         ).fetchall()
     finally:
         connection.close()
