@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from database import get_connection, init_db
@@ -18,7 +19,7 @@ def on_startup() -> None:
     init_db()
 
 
-@app.get("/")
+@app.get("/health")
 def health_check() -> dict:
     return {"status": "ok"}
 
@@ -122,3 +123,6 @@ def update_note(note_id: int, note: NoteCreate) -> dict:
     if row is None:
         raise HTTPException(status_code=404, detail="Note not found")
     return dict(row)
+
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
