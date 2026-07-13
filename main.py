@@ -64,3 +64,22 @@ def get_note(note_id: int) -> dict:
     if row is None:
         raise HTTPException(status_code=404, detail="Note not found")
     return dict(row)
+
+
+@app.put("/notes/{note_id}")
+def update_note(note_id: int, note: NoteCreate) -> dict:
+    connection = get_connection()
+    try:
+        connection.execute(
+            "UPDATE notes SET title = ?, content = ? WHERE id = ?",
+            (note.title, note.content, note_id),
+        )
+        connection.commit()
+        row = connection.execute(
+            "SELECT * FROM notes WHERE id = ?", (note_id,)
+        ).fetchone()
+    finally:
+        connection.close()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return dict(row)
