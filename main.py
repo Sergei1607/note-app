@@ -66,6 +66,22 @@ def get_note(note_id: int) -> dict:
     return dict(row)
 
 
+@app.delete("/notes/{note_id}")
+def delete_note(note_id: int) -> dict:
+    connection = get_connection()
+    try:
+        row = connection.execute(
+            "SELECT * FROM notes WHERE id = ?", (note_id,)
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Note not found")
+        connection.execute("DELETE FROM notes WHERE id = ?", (note_id,))
+        connection.commit()
+    finally:
+        connection.close()
+    return {"message": "Note deleted", "id": note_id}
+
+
 @app.put("/notes/{note_id}")
 def update_note(note_id: int, note: NoteCreate) -> dict:
     connection = get_connection()
