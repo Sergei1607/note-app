@@ -8,6 +8,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const searchInput = document.getElementById("search-input");
   const searchErrorEl = document.getElementById("search-error");
 
+  function formatDate(dateStr) {
+    const date = new Date(dateStr.replace(" ", "T") + "Z");
+    if (Number.isNaN(date.getTime())) {
+      return dateStr;
+    }
+    const datePart = date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+    const timePart = date.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `${datePart} · ${timePart}`;
+  }
+
+  function leafTilt(id) {
+    return ((id * 37) % 17) - 8;
+  }
+
   function renderNote(note) {
     const noteEl = document.createElement("div");
     noteEl.className = "note";
@@ -18,14 +39,28 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderNoteView(noteEl, note) {
     noteEl.innerHTML = "";
 
+    const headerEl = document.createElement("div");
+    headerEl.className = "note-header";
+
     const titleEl = document.createElement("h2");
     titleEl.textContent = note.title;
+
+    const leafEl = document.createElement("span");
+    leafEl.className = "note-leaf";
+    leafEl.textContent = "🍃";
+    leafEl.style.transform = `rotate(${leafTilt(note.id)}deg)`;
+
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(leafEl);
 
     const contentEl = document.createElement("p");
     contentEl.textContent = note.content || "";
 
+    const footerEl = document.createElement("div");
+    footerEl.className = "note-footer";
+
     const createdAtEl = document.createElement("small");
-    createdAtEl.textContent = note.created_at;
+    createdAtEl.textContent = formatDate(note.created_at);
 
     const actionsEl = document.createElement("div");
     actionsEl.className = "note-actions";
@@ -59,10 +94,12 @@ document.addEventListener("DOMContentLoaded", () => {
     actionsEl.appendChild(editButton);
     actionsEl.appendChild(deleteButton);
 
-    noteEl.appendChild(titleEl);
+    footerEl.appendChild(createdAtEl);
+    footerEl.appendChild(actionsEl);
+
+    noteEl.appendChild(headerEl);
     noteEl.appendChild(contentEl);
-    noteEl.appendChild(createdAtEl);
-    noteEl.appendChild(actionsEl);
+    noteEl.appendChild(footerEl);
   }
 
   function renderNoteEdit(noteEl, note) {
@@ -131,10 +168,12 @@ document.addEventListener("DOMContentLoaded", () => {
     noteEl.appendChild(editErrorEl);
   }
 
-  function renderNotes(notes, emptyMessage = "No notes yet.") {
+  function renderNotes(notes, emptyMessage = "🍃 No notes yet — plant your first one above.") {
     container.innerHTML = "";
+    container.classList.remove("loading", "empty");
 
     if (notes.length === 0) {
+      container.classList.add("empty");
       container.textContent = emptyMessage;
       return;
     }
@@ -145,6 +184,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function loadNotes() {
+    container.classList.add("loading");
+    container.classList.remove("empty");
+    container.textContent = "Loading notes...";
+
     fetch("/notes")
       .then((response) => {
         if (!response.ok) {
@@ -156,6 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderNotes(notes);
       })
       .catch((error) => {
+        container.classList.remove("loading");
         container.textContent = `Failed to load notes: ${error.message}`;
       });
   }
@@ -205,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return response.json();
       })
       .then((notes) => {
-        renderNotes(notes, "No notes match your search.");
+        renderNotes(notes, "🍃 No notes match your search.");
       })
       .catch((error) => {
         searchErrorEl.textContent = `Search failed: ${error.message}`;
