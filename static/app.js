@@ -5,6 +5,129 @@ document.addEventListener("DOMContentLoaded", () => {
   const contentInput = document.getElementById("note-content");
   const errorEl = document.getElementById("create-error");
 
+  function renderNote(note) {
+    const noteEl = document.createElement("div");
+    noteEl.className = "note";
+    renderNoteView(noteEl, note);
+    return noteEl;
+  }
+
+  function renderNoteView(noteEl, note) {
+    noteEl.innerHTML = "";
+
+    const titleEl = document.createElement("h2");
+    titleEl.textContent = note.title;
+
+    const contentEl = document.createElement("p");
+    contentEl.textContent = note.content || "";
+
+    const createdAtEl = document.createElement("small");
+    createdAtEl.textContent = note.created_at;
+
+    const actionsEl = document.createElement("div");
+    actionsEl.className = "note-actions";
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "Edit";
+    editButton.addEventListener("click", () => {
+      renderNoteEdit(noteEl, note);
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", () => {
+      if (!confirm("Delete this note?")) {
+        return;
+      }
+      fetch(`/notes/${note.id}`, { method: "DELETE" })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+          loadNotes();
+        })
+        .catch((error) => {
+          alert(`Failed to delete note: ${error.message}`);
+        });
+    });
+
+    actionsEl.appendChild(editButton);
+    actionsEl.appendChild(deleteButton);
+
+    noteEl.appendChild(titleEl);
+    noteEl.appendChild(contentEl);
+    noteEl.appendChild(createdAtEl);
+    noteEl.appendChild(actionsEl);
+  }
+
+  function renderNoteEdit(noteEl, note) {
+    noteEl.innerHTML = "";
+
+    const titleInput = document.createElement("input");
+    titleInput.type = "text";
+    titleInput.required = true;
+    titleInput.value = note.title;
+
+    const contentInput = document.createElement("textarea");
+    contentInput.value = note.content || "";
+
+    const editErrorEl = document.createElement("p");
+    editErrorEl.className = "error";
+
+    const actionsEl = document.createElement("div");
+    actionsEl.className = "note-actions";
+
+    const saveButton = document.createElement("button");
+    saveButton.type = "button";
+    saveButton.textContent = "Save";
+    saveButton.addEventListener("click", () => {
+      editErrorEl.textContent = "";
+
+      if (!titleInput.value.trim()) {
+        editErrorEl.textContent = "Title is required";
+        return;
+      }
+
+      fetch(`/notes/${note.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: titleInput.value,
+          content: contentInput.value,
+        }),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(() => {
+          loadNotes();
+        })
+        .catch((error) => {
+          editErrorEl.textContent = `Failed to save note: ${error.message}`;
+        });
+    });
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.textContent = "Cancel";
+    cancelButton.addEventListener("click", () => {
+      renderNoteView(noteEl, note);
+    });
+
+    actionsEl.appendChild(saveButton);
+    actionsEl.appendChild(cancelButton);
+
+    noteEl.appendChild(titleInput);
+    noteEl.appendChild(contentInput);
+    noteEl.appendChild(actionsEl);
+    noteEl.appendChild(editErrorEl);
+  }
+
   function loadNotes() {
     fetch("/notes")
       .then((response) => {
@@ -22,22 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         notes.forEach((note) => {
-          const noteEl = document.createElement("div");
-          noteEl.className = "note";
-
-          const titleEl = document.createElement("h2");
-          titleEl.textContent = note.title;
-
-          const contentEl = document.createElement("p");
-          contentEl.textContent = note.content || "";
-
-          const createdAtEl = document.createElement("small");
-          createdAtEl.textContent = note.created_at;
-
-          noteEl.appendChild(titleEl);
-          noteEl.appendChild(contentEl);
-          noteEl.appendChild(createdAtEl);
-          container.appendChild(noteEl);
+          container.appendChild(renderNote(note));
         });
       })
       .catch((error) => {

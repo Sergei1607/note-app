@@ -25,6 +25,28 @@ body {
   color: #666;
 }
 
+.note input,
+.note textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.note-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.note-actions button {
+  padding: 0.4rem 0.8rem;
+}
+
 #create-note-form {
   display: flex;
   flex-direction: column;
