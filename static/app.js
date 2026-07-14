@@ -4,6 +4,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const titleInput = document.getElementById("note-title");
   const contentInput = document.getElementById("note-content");
   const errorEl = document.getElementById("create-error");
+  const searchForm = document.getElementById("search-form");
+  const searchInput = document.getElementById("search-input");
+  const searchErrorEl = document.getElementById("search-error");
 
   function renderNote(note) {
     const noteEl = document.createElement("div");
@@ -128,6 +131,19 @@ document.addEventListener("DOMContentLoaded", () => {
     noteEl.appendChild(editErrorEl);
   }
 
+  function renderNotes(notes, emptyMessage = "No notes yet.") {
+    container.innerHTML = "";
+
+    if (notes.length === 0) {
+      container.textContent = emptyMessage;
+      return;
+    }
+
+    notes.forEach((note) => {
+      container.appendChild(renderNote(note));
+    });
+  }
+
   function loadNotes() {
     fetch("/notes")
       .then((response) => {
@@ -137,16 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return response.json();
       })
       .then((notes) => {
-        container.innerHTML = "";
-
-        if (notes.length === 0) {
-          container.textContent = "No notes yet.";
-          return;
-        }
-
-        notes.forEach((note) => {
-          container.appendChild(renderNote(note));
-        });
+        renderNotes(notes);
       })
       .catch((error) => {
         container.textContent = `Failed to load notes: ${error.message}`;
@@ -177,6 +184,31 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .catch((error) => {
         errorEl.textContent = `Failed to create note: ${error.message}`;
+      });
+  });
+
+  searchForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    searchErrorEl.textContent = "";
+
+    const query = searchInput.value.trim();
+    if (!query) {
+      loadNotes();
+      return;
+    }
+
+    fetch(`/notes/search?q=${encodeURIComponent(query)}`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((notes) => {
+        renderNotes(notes, "No notes match your search.");
+      })
+      .catch((error) => {
+        searchErrorEl.textContent = `Search failed: ${error.message}`;
       });
   });
 
