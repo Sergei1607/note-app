@@ -24,3 +24,28 @@ body {
 .note small {
   color: #666;
 }
+
+#create-note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+#create-note-form input,
+#create-note-form textarea {
+  font: inherit;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+#create-note-form button {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+}
+
+.error {
+  color: #b00020;
+  margin: 0;
+}

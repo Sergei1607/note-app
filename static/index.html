@@ -8,6 +8,14 @@
 </head>
 <body>
   <h1>Notes</h1>
+
+  <form id="create-note-form">
+    <input type="text" id="note-title" placeholder="Title" required>
+    <textarea id="note-content" placeholder="Content"></textarea>
+    <button type="submit">Add note</button>
+    <p id="create-error" class="error"></p>
+  </form>
+
   <div id="notes-container">Loading notes...</div>
 
   <script src="/app.js"></script>
