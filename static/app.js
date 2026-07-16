@@ -7,6 +7,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const searchForm = document.getElementById("search-form");
   const searchInput = document.getElementById("search-input");
   const searchErrorEl = document.getElementById("search-error");
+  const summarizeButton = document.getElementById("summarize-button");
+  const summaryPanel = document.getElementById("summary-panel");
 
   function formatDate(dateStr) {
     const date = new Date(dateStr.replace(" ", "T") + "Z");
@@ -253,6 +255,34 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .catch((error) => {
         searchErrorEl.textContent = `Search failed: ${error.message}`;
+      });
+  });
+
+  summarizeButton.addEventListener("click", () => {
+    summarizeButton.disabled = true;
+    summarizeButton.textContent = "Summarizing...";
+    summaryPanel.classList.remove("error");
+    summaryPanel.classList.add("visible");
+    summaryPanel.textContent = "Summarizing your week...";
+
+    fetch("/notes/summary")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        summaryPanel.classList.remove("error");
+        summaryPanel.textContent = data.summary;
+      })
+      .catch((error) => {
+        summaryPanel.classList.add("error");
+        summaryPanel.textContent = `Failed to generate summary: ${error.message}`;
+      })
+      .finally(() => {
+        summarizeButton.disabled = false;
+        summarizeButton.textContent = "Summarize my week";
       });
   });
 

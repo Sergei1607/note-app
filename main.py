@@ -1,12 +1,19 @@
 from typing import Optional
 
+import anthropic
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from database import get_connection, init_db
 
+load_dotenv()
+
 app = FastAPI()
+anthropic_client = anthropic.Anthropic()
+
+MAX_NOTE_CONTENT_CHARS = 2000
 
 
 class NoteCreate(BaseModel):
@@ -74,6 +81,52 @@ def search_notes(q: Optional[str] = Query(None)) -> list[dict]:
     finally:
         connection.close()
     return [dict(row) for row in rows]
+
+
+@app.get("/notes/summary")
+def get_notes_summary() -> dict:
+    connection = get_connection()
+    try:
+        rows = connection.execute(
+            """
+            SELECT * FROM notes
+            WHERE created_at >= datetime('now', '-7 days')
+            ORDER BY created_at DESC
+            """
+        ).fetchall()
+    finally:
+        connection.close()
+
+    if not rows:
+        return {"summary": "No notes this week."}
+
+    notes_text = "\n\n".join(
+        f"Title: {row['title']}\n"
+        f"Content: {(row['content'] or '')[:MAX_NOTE_CONTENT_CHARS]}"
+        for row in rows
+    )
+    prompt = (
+        "Here are my notes from the past week. Summarize them in a few natural, "
+        "conversational sentences, as if you were catching me up on my own week. "
+        "Respond in plain text only: no markdown formatting (no #, **, bullet "
+        "points, or other markdown syntax) and no emoji.\n\n" + notes_text
+    )
+
+    try:
+        response = anthropic_client.messages.create(
+            model="claude-haiku-4-5",
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except anthropic.APIError as e:
+        raise HTTPException(
+            status_code=502, detail=f"Failed to generate summary: {e}"
+        )
+
+    summary_text = next(
+        (block.text for block in response.content if block.type == "text"), ""
+    )
+    return {"summary": summary_text}
 
 
 @app.get("/notes/{note_id}")
